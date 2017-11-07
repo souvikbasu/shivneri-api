@@ -5,9 +5,10 @@ var objectId = require('mongodb').ObjectID;
 var bodyParser = require('body-parser');
 
 
+
 //fetch all the results and filter based on query string and sorting
 fortsRouter.route('/')
-   .post(function(req,res){
+   .post(function(req,res){ 
     var url = 'mongodb://accountAdmin01:changeMe@localhost:27017/fortlisting';
     mongodb.connect(url, function (err, db) {
       if (err) {
@@ -32,24 +33,48 @@ fortsRouter.route('/')
         return;
       };
       var collection = db.collection('fortlist');
-      var query = req.query;
-      collection.find(query).sort({'fortName':-1}).toArray(
+
+      var query = req.query.search || '';
+      var limit = Number(req.query.limit) || 0;
+      var skip = Number(req.query.skip) || 0;
+      var sortBy = req.query.sortBy || fortName;
+      var sortOrder = Number(req.query.sortOrder) || 1;
+      pattern= query;
+
+      let sortOption = {};
+      sortOption[sortBy] = sortOrder;
+      let options={
+          "limit": limit,
+          "skip": skip,
+          "sort": sortOption
+      }
+
+      if(query){
+       collection.find({$or:[{fortPlace : {$regex :pattern,$options: "i"  }},{fortName : {$regex :pattern,$options: "i"  }}]},options).toArray(
         function (err, results) {
           res.json(results);
           db.close();
         });
+      }else{
+      collection.find({}).toArray(
+        function (err, results) {
+          console.log(options);
+          res.json(results);
+          db.close();
+        });
+      }
     });
   });
 
 
-//insert the result (post)
+
 //fetch the data according to the ID (GET)
 
 fortsRouter.route('/:id')
 .get(function (req, res) {
   var Id = new objectId(req.params.id);
   var url = 'mongodb://accountAdmin01:changeMe@localhost:27017/fortlisting';
-  mongodb.connect(url, function (err, db) {
+mongodb.connect(url, function (err, db) {
     if (err) {
       console.log(err);
       return;
